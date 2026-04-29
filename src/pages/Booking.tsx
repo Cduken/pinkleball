@@ -422,11 +422,7 @@ const BookingPage = () => {
   };
 
   // Check which time slots are fully booked (no availability at all)
-  const getFullyBookedSlots = useCallback(() => {
-    return timeSlots.filter((slot) => shouldDisableTimeSlot(slot, bookedSlots));
-  }, [bookedSlots]);
 
-  const fullyBookedSlots = getFullyBookedSlots();
 
   return (
     <div className="min-h-screen bg-pink-50">

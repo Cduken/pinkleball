@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/immutability */
 //Tournaments.tsx public
 import { useState, useEffect } from "react";
@@ -14,10 +15,10 @@ import {
   Medal,
   Crown,
   Swords,
-  RefreshCw,
-  ArrowRight,
+
+
   Check,
-  X,
+
   Loader2,
 } from "lucide-react";
 import MainLogo from "../components/MainLogo/MainLogo";

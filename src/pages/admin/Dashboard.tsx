@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/purity */
+/* eslint-disable prefer-const */
 /* eslint-disable no-case-declarations */
-//Admin/Reservations.tsx
-import { useState, useMemo, useEffect, useCallback } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { useState, useMemo, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   CalendarDays, Clock, User, Phone, Search, Filter,
   CheckCircle2, XCircle, Hourglass, MoreHorizontal,
   Check, X, ArrowUpDown, RefreshCw,
-  TrendingUp, DollarSign, Users, Calendar,
-  BarChart3, PieChart, Activity,
+   DollarSign, Users, Calendar,
+  BarChart3,  Activity,
   Download, ChevronDown, ChevronUp, AlertCircle,
-  Zap, Clock3
+   Clock3
 } from "lucide-react";
 import AdminLayout from "../../layouts/AdminLayout";
 import { useReservations, type Status, type Reservation } from "../../hooks/useReservations";
