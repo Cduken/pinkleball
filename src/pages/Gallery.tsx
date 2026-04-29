@@ -198,7 +198,7 @@ const Deco = () => (
 // ── Gallery ───────────────────────────────────────────────────────────────────
 const Gallery = () => {
   const [images, setImages] = useState<GalleryImage[]>([]);
-  const [loading, setLoading] = useState(true);
+  
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -212,7 +212,7 @@ const Gallery = () => {
 
   const fetchImages = async () => {
     try {
-      setLoading(true);
+      
       setError(null);
 
       const { data, error: supabaseError } = await supabase
@@ -226,9 +226,7 @@ const Gallery = () => {
     } catch (err) {
       console.error("Error fetching gallery images:", err);
       setError("Failed to load gallery images. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
+    } 
   };
 
   // Group into pages of 4
