@@ -1,4 +1,5 @@
-// login.tsx
+//LoginPage.tsx
+
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import PinkleBall from "../../assets/MainLogo/PinkleBall.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -67,12 +69,6 @@ export default function LoginPage() {
         return;
       }
 
-      // if (isMounted.current) {
-      //   setDebugInfo(
-      //     `AUTH OK → user id: ${authData.user.id} | email: ${authData.user.email}`,
-      //   );
-      // }
-
       // ── Step 2: Check profiles table ────────────────────────────
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -106,12 +102,6 @@ export default function LoginPage() {
         return;
       }
 
-      // if (isMounted.current) {
-      //   setDebugInfo(
-      //     (prev) => `${prev || ""}\nPROFILE OK → role: ${profile.role}`,
-      //   );
-      // }
-
       if (profile.role !== "admin") {
         if (isMounted.current) {
           await supabase.auth.signOut();
@@ -122,8 +112,7 @@ export default function LoginPage() {
       }
 
       // ── Step 3: Success ──────────────────────────────────────────
-      // Wait a moment for the auth state to update in AuthContext
-       if (isMounted.current) {
+      if (isMounted.current) {
         setLoading(false);
         navigate("/admin", { replace: true });
       }
@@ -141,413 +130,315 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: "#0d0a0f", fontFamily: "'DM Sans', sans-serif" }}
+      className="min-h-screen flex items-center justify-center p-0 relative overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 25%, #fbcfe8 50%, #f5f3ff 75%, #ede9fe 100%)",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
     >
-      {/* ── Background ── */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* ── Animated Gradient Bubbles ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Large bubble top-right */}
         <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(232,121,249,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(232,121,249,0.03) 1px, transparent 1px)
-            `,
-            backgroundSize: "44px 44px",
-          }}
-        />
-        <div
-          className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full"
+          className="absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full animate-float"
           style={{
             background:
-              "radial-gradient(circle, rgba(217,70,239,0.12) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(236,72,153,0.15) 0%, rgba(244,114,182,0.08) 40%, transparent 70%)",
+            animation: "float 8s ease-in-out infinite",
           }}
         />
+        {/* Large bubble bottom-left */}
         <div
-          className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full"
+          className="absolute -bottom-40 -left-40 w-[700px] h-[700px] rounded-full animate-float-delayed"
           style={{
             background:
-              "radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 65%)",
+              "radial-gradient(circle, rgba(192,132,252,0.12) 0%, rgba(167,139,250,0.06) 40%, transparent 70%)",
+            animation: "float 10s ease-in-out infinite reverse",
           }}
         />
+        {/* Medium bubble center-left */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full"
+          className="absolute top-1/3 -left-20 w-[400px] h-[400px] rounded-full animate-float-slow"
           style={{
             background:
-              "radial-gradient(ellipse, rgba(192,38,211,0.07) 0%, transparent 70%)",
+              "radial-gradient(circle, rgba(244,114,182,0.1) 0%, rgba(236,72,153,0.04) 40%, transparent 70%)",
+            animation: "float 12s ease-in-out infinite",
+          }}
+        />
+        {/* Medium bubble bottom-right */}
+        <div
+          className="absolute bottom-1/4 -right-24 w-[450px] h-[450px] rounded-full animate-float-delayed-slow"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(216,180,254,0.1) 0%, rgba(192,132,252,0.04) 40%, transparent 70%)",
+            animation: "float 14s ease-in-out infinite reverse",
+          }}
+        />
+        {/* Small floating decorative circles */}
+        <div
+          className="absolute top-20 left-1/4 w-3 h-3 rounded-full"
+          style={{
+            background: "rgba(236,72,153,0.3)",
+            boxShadow: "0 0 20px rgba(236,72,153,0.2)",
           }}
         />
         <div
-          className="absolute top-20 right-1/4 w-2 h-2 rounded-full"
+          className="absolute top-1/2 right-1/3 w-2 h-2 rounded-full"
           style={{
-            background: "#e879f9",
-            boxShadow: "0 0 12px 4px rgba(232,121,249,0.4)",
+            background: "rgba(192,132,252,0.4)",
+            boxShadow: "0 0 15px rgba(192,132,252,0.25)",
           }}
         />
         <div
-          className="absolute bottom-32 left-1/3 w-1.5 h-1.5 rounded-full"
+          className="absolute bottom-32 left-1/3 w-2.5 h-2.5 rounded-full"
           style={{
-            background: "#f472b6",
-            boxShadow: "0 0 10px 3px rgba(244,114,182,0.4)",
-          }}
-        />
-        <div
-          className="absolute top-1/3 left-16 w-1 h-1 rounded-full"
-          style={{
-            background: "#c084fc",
-            boxShadow: "0 0 8px 3px rgba(192,132,252,0.4)",
+            background: "rgba(244,114,182,0.35)",
+            boxShadow: "0 0 18px rgba(244,114,182,0.2)",
           }}
         />
       </div>
 
-      {/* ── Card ── */}
+      {/* ── Main Container ── */}
       <div
-        className="relative w-full max-w-[420px] rounded-3xl overflow-hidden"
+        className="relative w-full max-w-5xl mx-4 rounded-3xl overflow-hidden flex flex-col lg:flex-row"
         style={{
-          background:
-            "linear-gradient(160deg, rgba(26,13,31,0.95) 0%, rgba(20,10,26,0.98) 100%)",
-          border: "1px solid rgba(232,121,249,0.15)",
-          boxShadow:
-            "0 0 0 1px rgba(0,0,0,0.6), 0 40px 80px rgba(0,0,0,0.6), 0 0 100px rgba(192,38,211,0.08)",
+          background: "rgba(255, 255, 255, 0.85)",
           backdropFilter: "blur(20px)",
+          border: "1px solid rgba(236,72,153,0.15)",
+          boxShadow:
+            "0 20px 60px rgba(236,72,153,0.1), 0 0 0 1px rgba(255,255,255,0.5)",
         }}
       >
-        {/* Top gradient stripe */}
-        <div
-          className="h-[2px] w-full"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, #9333ea 25%, #ec4899 50%, #9333ea 75%, transparent 100%)",
-          }}
-        />
-        <div
-          className="absolute top-0 left-0 right-0 h-32 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(to bottom, rgba(192,38,211,0.06), transparent)",
-          }}
-        />
+        {/* ── Left Side - Image/Branding ── */}
+        <div className="lg:w-1/2 p-12 flex flex-col items-center justify-center relative overflow-hidden">
+          {/* Subtle gradient overlay */}
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(236,72,153,0.1) 0%, rgba(192,132,252,0.1) 100%)",
+            }}
+          />
 
-        <div className="px-8 py-10 relative">
-          {/* ── Brand ── */}
-          <div className="flex flex-col items-center mb-8 gap-4">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(192,38,211,0.2), rgba(236,72,153,0.1))",
-                border: "1px solid rgba(232,121,249,0.2)",
-                boxShadow: "0 0 24px rgba(192,38,211,0.15)",
-              }}
-            >
-              <svg
-                viewBox="0 0 32 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-9 h-9"
-              >
-                <rect
-                  x="3"
-                  y="9"
-                  width="17"
-                  height="13"
-                  rx="8"
-                  fill="rgba(232,121,249,0.15)"
-                  stroke="url(#paddleGrad)"
-                  strokeWidth="1.5"
-                />
-                <rect
-                  x="9"
-                  y="20"
-                  width="5"
-                  height="9"
-                  rx="2.5"
-                  fill="rgba(236,72,153,0.2)"
-                  stroke="url(#paddleGrad)"
-                  strokeWidth="1.5"
-                />
-                <circle
-                  cx="25"
-                  cy="8"
-                  r="5"
-                  fill="rgba(232,121,249,0.12)"
-                  stroke="url(#paddleGrad)"
-                  strokeWidth="1.5"
-                />
-                <circle cx="23.5" cy="7" r="0.9" fill="#e879f9" opacity="0.8" />
-                <circle cx="26.5" cy="7" r="0.9" fill="#e879f9" opacity="0.8" />
-                <circle cx="25" cy="10" r="0.9" fill="#e879f9" opacity="0.8" />
-                <defs>
-                  <linearGradient
-                    id="paddleGrad"
-                    x1="0"
-                    y1="0"
-                    x2="32"
-                    y2="32"
-                    gradientUnits="userSpaceOnUse"
-                  >
-                    <stop offset="0%" stopColor="#e879f9" />
-                    <stop offset="100%" stopColor="#ec4899" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <div className="text-center">
-              <h1
-                className="text-white font-bold text-2xl"
-                style={{ letterSpacing: "-0.04em" }}
-              >
-                PicklePro
-              </h1>
-              <p
-                className="text-[11px] font-semibold tracking-[0.22em] uppercase mt-1"
+          <div className="relative z-10 flex flex-col items-center gap-8">
+            {/* App Image */}
+            <div className="relative group">
+              <div
+                className="absolute inset-0 rounded-3xl opacity-50 group-hover:opacity-75 transition-opacity duration-500"
                 style={{
-                  background: "linear-gradient(90deg, #c084fc, #f472b6)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  background:
+                    "radial-gradient(circle, rgba(236,72,153,0.2) 0%, transparent 70%)",
+                }}
+              />
+              <img
+                src={PinkleBall}
+                alt="PicklePro"
+                className="w-72 h-72 object-contain relative z-10 drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
+                style={{
+                  filter: "drop-shadow(0 20px 40px rgba(236,72,153,0.25))",
+                }}
+              />
+            </div>
+
+            
+
+          </div>
+        </div>
+
+        {/* ── Right Side - Login Form ── */}
+        <div className="lg:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
+          <div className="max-w-sm mx-auto w-full">
+            {/* Header */}
+            <div className="mb-8">
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                Welcome back
+              </h2>
+              <p className="text-sm text-gray-500">
+                Sign in to access your dashboard
+              </p>
+            </div>
+
+            {/* ── Error ── */}
+            {error && (
+              <div
+                className="mb-6 flex items-start gap-2.5 rounded-xl px-4 py-3"
+                style={{
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.15)",
                 }}
               >
-                Admin Portal
-              </p>
-            </div>
-          </div>
-
-          {/* ── Restricted badge ── */}
-          <div className="flex items-center gap-3 mb-6">
-            <div
-              className="flex-1 h-px"
-              style={{
-                background:
-                  "linear-gradient(to right, transparent, rgba(232,121,249,0.12))",
-              }}
-            />
-            <div
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full"
-              style={{
-                background: "rgba(192,38,211,0.08)",
-                border: "1px solid rgba(232,121,249,0.12)",
-              }}
-            >
-              <ShieldCheck
-                size={10}
-                style={{ color: "rgba(232,121,249,0.6)" }}
-              />
-              <span
-                className="text-[9px] font-bold tracking-[0.18em] uppercase"
-                style={{ color: "rgba(232,121,249,0.6)" }}
-              >
-                Restricted Access
-              </span>
-            </div>
-            <div
-              className="flex-1 h-px"
-              style={{
-                background:
-                  "linear-gradient(to left, transparent, rgba(232,121,249,0.12))",
-              }}
-            />
-          </div>
-
-          {/* ── Error ── */}
-          {error && (
-            <div
-              className="mb-4 flex items-start gap-2.5 rounded-xl px-4 py-3"
-              style={{
-                background: "rgba(239,68,68,0.07)",
-                border: "1px solid rgba(239,68,68,0.2)",
-              }}
-            >
-              <AlertTriangle
-                size={14}
-                className="shrink-0 mt-0.5"
-                style={{ color: "#f87171" }}
-              />
-              <p
-                className="text-xs leading-relaxed"
-                style={{ color: "#fca5a5" }}
-              >
-                {error}
-              </p>
-            </div>
-          )}
-
-          {/* ── Debug info box ── */}
-          {debugInfo && (
-            <div
-              className="mb-4 rounded-xl px-4 py-3 text-left"
-              style={{
-                background: "rgba(234,179,8,0.06)",
-                border: "1px solid rgba(234,179,8,0.2)",
-              }}
-            >
-              <p
-                className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
-                style={{ color: "rgba(234,179,8,0.7)" }}
-              >
-                🔍 Debug Info
-              </p>
-              <pre
-                className="text-[10px] leading-relaxed whitespace-pre-wrap break-all"
-                style={{
-                  color: "rgba(234,179,8,0.6)",
-                  fontFamily: "'DM Mono', monospace",
-                }}
-              >
-                {debugInfo}
-              </pre>
-            </div>
-          )}
-
-          {/* ── Form ── */}
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label
-                className="block text-[11px] font-semibold tracking-[0.12em] uppercase mb-2"
-                style={{ color: "rgba(232,121,249,0.5)" }}
-              >
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail
+                <AlertTriangle
                   size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "rgba(232,121,249,0.3)" }}
+                  className="shrink-0 mt-0.5"
+                  style={{ color: "#ef4444" }}
                 />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@picklepro.com"
-                  disabled={loading}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "rgba(10,5,14,0.8)",
-                    border: "1px solid rgba(232,121,249,0.1)",
-                    color: "white",
-                    fontFamily: "'DM Mono', monospace",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(232,121,249,0.4)";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(192,38,211,0.08)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(232,121,249,0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                />
+                <p className="text-xs leading-relaxed text-red-600">{error}</p>
               </div>
-            </div>
+            )}
 
-            {/* Password */}
-            <div>
-              <label
-                className="block text-[11px] font-semibold tracking-[0.12em] uppercase mb-2"
-                style={{ color: "rgba(232,121,249,0.5)" }}
+            {/* ── Debug info box ── */}
+            {debugInfo && (
+              <div
+                className="mb-6 rounded-xl px-4 py-3 text-left"
+                style={{
+                  background: "rgba(234,179,8,0.06)",
+                  border: "1px solid rgba(234,179,8,0.2)",
+                }}
               >
-                Password
-              </label>
-              <div className="relative">
-                <Lock
-                  size={14}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "rgba(232,121,249,0.3)" }}
-                />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••"
-                  disabled={loading}
-                  className="w-full pl-10 pr-11 py-3 rounded-xl text-sm outline-none transition-all duration-200 disabled:opacity-50"
-                  style={{
-                    background: "rgba(10,5,14,0.8)",
-                    border: "1px solid rgba(232,121,249,0.1)",
-                    color: "white",
-                    fontFamily: "'DM Mono', monospace",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(232,121,249,0.4)";
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(192,38,211,0.08)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(232,121,249,0.1)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={loading}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors duration-150 disabled:opacity-50"
-                  style={{ color: "rgba(232,121,249,0.3)" }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = "rgba(232,121,249,0.7)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "rgba(232,121,249,0.3)")
-                  }
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest mb-1.5"
+                  style={{ color: "rgba(234,179,8,0.7)" }}
                 >
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="relative w-full mt-2 py-3.5 rounded-xl font-bold text-sm tracking-wider text-white flex items-center justify-center gap-2 overflow-hidden transition-all duration-200 disabled:cursor-not-allowed"
-              style={{
-                background: loading
-                  ? "rgba(147,51,234,0.4)"
-                  : "linear-gradient(135deg, #9333ea 0%, #ec4899 100%)",
-                boxShadow: loading
-                  ? "none"
-                  : "0 4px 24px rgba(147,51,234,0.35), 0 1px 0 rgba(255,255,255,0.08) inset",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {!loading && (
-                <span
-                  className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300"
+                  🔍 Debug Info
+                </p>
+                <pre
+                  className="text-[10px] leading-relaxed whitespace-pre-wrap break-all"
                   style={{
-                    background:
-                      "linear-gradient(135deg, #a855f7 0%, #f472b6 100%)",
+                    color: "rgba(234,179,8,0.6)",
+                    fontFamily: "'DM Mono', monospace",
                   }}
-                />
-              )}
-              <span className="relative flex items-center gap-2">
-                {loading ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    Verifying…
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </span>
-            </button>
-          </form>
+                >
+                  {debugInfo}
+                </pre>
+              </div>
+            )}
 
-          <p
-            className="mt-6 text-center text-[10px] leading-relaxed"
-            style={{ color: "rgba(232,121,249,0.18)" }}
-          >
-            Authorized administrators only.
-            <br />
-            Unauthorized access is strictly prohibited.
-          </p>
+            {/* ── Form ── */}
+            <form onSubmit={handleLogin} className="space-y-5">
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail
+                    size={16}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
+                  />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@pinkleball.com"
+                    disabled={loading}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 disabled:opacity-50 bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-pink-400 focus:ring-4 focus:ring-pink-400/10"
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock
+                    size={16}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
+                  />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••"
+                    disabled={loading}
+                    className="w-full pl-10 pr-11 py-3 rounded-xl text-sm outline-none transition-all duration-200 disabled:opacity-50 bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-pink-400 focus:ring-4 focus:ring-pink-400/10"
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-150 disabled:opacity-50"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="relative w-full mt-2 py-3 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-pink-400/25 active:scale-[0.98]"
+                style={{
+                  background: loading
+                    ? "linear-gradient(135deg, #f472b6 0%, #c084fc 100%)"
+                    : "linear-gradient(135deg, #ec4899 0%, #a855f7 100%)",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                <span className="relative flex items-center gap-2">
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Signing in…
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </span>
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-xs text-gray-400">
+              Authorized administrators only.
+              <br />
+              Unauthorized access is strictly prohibited.
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* ── Animation Keyframes ── */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(-20px) rotate(2deg); }
+          66% { transform: translateY(10px) rotate(-2deg); }
+        }
+        
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(15px) rotate(-2deg); }
+          66% { transform: translateY(-15px) rotate(2deg); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-25px) rotate(1deg); }
+        }
+        
+        @keyframes float-delayed-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(20px) rotate(-1deg); }
+        }
+        
+        .animate-float {
+          animation: float 8s ease-in-out infinite;
+        }
+        
+        .animate-float-delayed {
+          animation: float 10s ease-in-out infinite reverse;
+        }
+        
+        .animate-float-slow {
+          animation: float 12s ease-in-out infinite;
+        }
+        
+        .animate-float-delayed-slow {
+          animation: float 14s ease-in-out infinite reverse;
+        }
+      `}</style>
     </div>
   );
 }

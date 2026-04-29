@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, CalendarDays, Users, Trophy,
-  Settings, LogOut, Menu,  ChevronLeft,
+  LogOut, Menu,  ChevronLeft,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import MainLogo from "../components/MainLogo/MainLogo";
@@ -13,7 +13,7 @@ const navLinks = [
   { label: "Reservations", icon: CalendarDays,    href: "/admin/reservations"  },
   { label: "Participants", icon: Users,           href: "/admin/participants"  },
   { label: "Tournaments",  icon: Trophy,          href: "/admin/tournaments"   },
-  { label: "Settings",     icon: Settings,        href: "/admin/settings"      },
+  
 ];
 
 const P = {
