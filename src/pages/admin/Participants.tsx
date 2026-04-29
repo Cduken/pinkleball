@@ -153,7 +153,7 @@ export default function AdminParticipants() {
   const topPlayer = [...data].sort((a, b) => b.totalBookings - a.totalBookings)[0];
 
   return (
-    <AdminLayout title="Participants" subtitle="All registered players">
+    <AdminLayout title="Members" subtitle="All registered members">
       {selected && <DetailDrawer p={selected} onClose={() => setSelected(null)} onStatusChange={handleStatusChange} />}
 
       {/* Top stats */}

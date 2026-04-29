@@ -22,34 +22,8 @@ const Footer = () => {
           © {new Date().getFullYear()} PinkleBall. All rights reserved.
         </motion.p>
         
-        <motion.div
-          className="flex items-center gap-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-        >
-          <motion.a
-            href="#"
-            whileHover={{ scale: 1.1 }}
-            className="text-gray-400 hover:text-pink-500 transition-colors cursor-pointer"
-          >
-            Privacy
-          </motion.a>
-          <motion.a
-            href="#"
-            whileHover={{ scale: 1.1 }}
-            className="text-gray-400 hover:text-pink-500 transition-colors cursor-pointer"
-          >
-            Terms
-          </motion.a>
-          <motion.a
-            href="#"
-            whileHover={{ scale: 1.1 }}
-            className="text-gray-400 hover:text-pink-500 transition-colors cursor-pointer"
-          >
-            Contact
-          </motion.a>
-        </motion.div>
+       
+        
       </div>
     </footer>
   );

@@ -1,6 +1,8 @@
+//Availability.tsx
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,6 +10,7 @@ import {
   Circle,
   Loader2,
 } from "lucide-react";
+import gsap from "gsap";
 import MainLogo from "../components/MainLogo/MainLogo";
 import { supabase } from "../lib/supabase";
 
@@ -140,7 +143,91 @@ const AvailabilityPage = () => {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const { bookedHours, loading } = useBookedHours(currentYear, currentMonth);
+  const { bookedHours, loading } = useBookedHours(currentMonth, currentYear);
+
+  // Refs for GSAP animations
+  const headerRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const legendRef = useRef<HTMLDivElement>(null);
+  const selectedPanelRef = useRef<HTMLDivElement>(null);
+  const hoursCardRef = useRef<HTMLDivElement>(null);
+
+  // GSAP entrance animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+      );
+      gsap.fromTo(
+        calendarRef.current,
+        { opacity: 0, x: -40, scale: 0.95 },
+        { opacity: 1, x: 0, scale: 1, duration: 0.7, ease: "back.out(0.6)" },
+      );
+      gsap.fromTo(
+        legendRef.current,
+        { opacity: 0, x: 40, scale: 0.95 },
+        {
+          opacity: 1,
+          x: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "back.out(0.6)",
+          delay: 0.15,
+        },
+      );
+      gsap.fromTo(
+        hoursCardRef.current,
+        { opacity: 0, y: 30, scale: 0.95 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "back.out(0.6)",
+          delay: 0.25,
+        },
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // Animate when selected date changes
+  useEffect(() => {
+    if (selectedDate && selectedPanelRef.current) {
+      gsap.fromTo(
+        selectedPanelRef.current,
+        { opacity: 0, scale: 0.9, y: 20 },
+        {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 0.5,
+          ease: "elastic.out(1, 0.5)",
+        },
+      );
+    }
+  }, [selectedDate]);
+
+  // Animate month change
+  const animateMonthChange = () => {
+    gsap.to(".calendar-grid", {
+      scale: 0.95,
+      opacity: 0.7,
+      duration: 0.15,
+      ease: "power2.in",
+      onComplete: () => {
+        gsap.to(".calendar-grid", {
+          scale: 1,
+          opacity: 1,
+          duration: 0.25,
+          ease: "back.out(0.8)",
+        });
+      },
+    });
+  };
 
   const getDaysInMonth = (m: number, y: number) =>
     new Date(y, m + 1, 0).getDate();
@@ -148,13 +235,16 @@ const AvailabilityPage = () => {
     new Date(y, m, 1).getDay();
 
   const prevMonth = () => {
+    animateMonthChange();
     if (currentMonth === 0) {
       setCurrentMonth(11);
       setCurrentYear((y) => y - 1);
     } else setCurrentMonth((m) => m - 1);
     setSelectedDate(null);
   };
+
   const nextMonth = () => {
+    animateMonthChange();
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear((y) => y + 1);
@@ -200,11 +290,31 @@ const AvailabilityPage = () => {
   const handleDayClick = (day: number) => {
     const status = getStatus(day);
     if (!status || status === "fully-booked" || isPast(day)) return;
+
+    // Add click animation
+    gsap.to(`.day-${day}`, {
+      scale: 0.95,
+      duration: 0.1,
+      yoyo: true,
+      repeat: 1,
+      ease: "power2.inOut",
+    });
+
     setSelectedDate(new Date(currentYear, currentMonth, day));
   };
 
   const handleBookThisDay = () => {
     if (!selectedDate) return;
+
+    // Button click animation
+    gsap.to(".book-button", {
+      scale: 0.95,
+      duration: 0.1,
+      yoyo: true,
+      repeat: 1,
+      ease: "power2.inOut",
+    });
+
     const iso = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
     navigate(`/book?date=${iso}`);
   };
@@ -216,73 +326,123 @@ const AvailabilityPage = () => {
     ? getRemainingHours(selectedDate.getDate())
     : 0;
 
+  // Floating decorative elements animation
+  useEffect(() => {
+    const floatingElements = document.querySelectorAll(".floating-deco-avail");
+    floatingElements.forEach((el, i) => {
+      gsap.to(el, {
+        y: "random(-15, 15)",
+        x: "random(-10, 10)",
+        duration: "random(3, 6)",
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        delay: i * 0.3,
+      });
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-50 to-pink-100/50">
+      
+
       {/* Header */}
-      <div className="bg-white border-b border-pink-100 px-4 py-4">
+      <motion.div
+        ref={headerRef}
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-white/80 backdrop-blur-md border-b border-pink-100 px-4 py-4 sticky top-0 z-20"
+      >
         <div className="max-w-5xl mx-auto flex items-center gap-4">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05, x: -3 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/")}
             className="p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
+          </motion.button>
           <MainLogo />
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-5xl mx-auto px-4 py-10">
         {/* Title */}
-        <div className="mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-8"
+        >
           <h1 className="text-3xl font-extrabold text-gray-900">
             Court <span className="text-pink-500">Availability</span>
           </h1>
           <p className="text-gray-400 text-sm mt-1">
             Pick a date to see availability and book your slot.
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ── Calendar ── */}
-          <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-pink-100 p-6">
+          <motion.div
+            ref={calendarRef}
+            initial={{ opacity: 0, x: -40, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-pink-100 p-6 hover:shadow-md transition-shadow"
+          >
             {/* Month nav */}
             <div className="flex items-center justify-between mb-6">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                whileTap={{ scale: 0.9 }}
                 onClick={prevMonth}
                 className="p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5 text-gray-500" />
-              </button>
+              </motion.button>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-extrabold text-gray-800">
+                <motion.h2
+                  key={`${currentMonth}-${currentYear}`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-lg font-extrabold text-gray-800"
+                >
                   {MONTHS[currentMonth]} {currentYear}
-                </h2>
+                </motion.h2>
                 {loading && (
                   <Loader2 className="w-4 h-4 text-pink-400 animate-spin" />
                 )}
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                whileTap={{ scale: 0.9 }}
                 onClick={nextMonth}
                 className="p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer"
               >
                 <ChevronRight className="w-5 h-5 text-gray-500" />
-              </button>
+              </motion.button>
             </div>
 
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-3">
-              {DAYS.map((d) => (
-                <div
+              {DAYS.map((d, idx) => (
+                <motion.div
                   key={d}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
                   className="text-center text-xs font-bold text-gray-400 py-2"
                 >
                   {d}
-                </div>
+                </motion.div>
               ))}
             </div>
 
             {/* Days grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-2 calendar-grid">
               {Array.from({ length: firstDay }).map((_, i) => (
                 <div key={`empty-${i}`} />
               ))}
@@ -295,11 +455,23 @@ const AvailabilityPage = () => {
                 const config = status ? statusConfig[status] : null;
 
                 return (
-                  <div
+                  <motion.div
                     key={day}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: day * 0.008, duration: 0.3 }}
+                    whileHover={
+                      !past && config && status !== "fully-booked"
+                        ? {
+                            scale: 1.05,
+                            y: -3,
+                            transition: { type: "spring", stiffness: 400 },
+                          }
+                        : {}
+                    }
                     onClick={() => handleDayClick(day)}
                     className={`
-                      relative flex flex-col items-center justify-center rounded-2xl
+                      day-${day} relative flex flex-col items-center justify-center rounded-2xl
                       aspect-square border transition-all text-sm font-bold
                       ${past ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed" : ""}
                       ${loading && !past ? "animate-pulse bg-gray-50 border-gray-100" : ""}
@@ -310,27 +482,42 @@ const AvailabilityPage = () => {
                   >
                     <span>{day}</span>
                     {!past && !loading && config && (
-                      <span
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: day * 0.008 + 0.1 }}
                         className={`w-1.5 h-1.5 rounded-full mt-0.5 ${config.dot}`}
                       />
                     )}
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
 
           {/* ── Right panel ── */}
           <div className="flex flex-col gap-4">
             {/* Legend */}
-            <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5">
+            <motion.div
+              ref={legendRef}
+              initial={{ opacity: 0, x: 40, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5 hover:shadow-md transition-shadow"
+            >
               <h3 className="font-bold text-gray-800 text-sm mb-4">Legend</h3>
               <div className="flex flex-col gap-3">
                 {(Object.keys(statusConfig) as AvailabilityStatus[]).map(
-                  (status) => {
+                  (status, idx) => {
                     const config = statusConfig[status];
                     return (
-                      <div key={status} className="flex items-center gap-3">
+                      <motion.div
+                        key={status}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + idx * 0.1 }}
+                        className="flex items-center gap-3"
+                      >
                         <div
                           className={`w-8 h-8 rounded-xl border flex items-center justify-center ${config.bg} ${config.border}`}
                         >
@@ -349,14 +536,19 @@ const AvailabilityPage = () => {
                             {status === "fully-booked" && "No slots available"}
                           </p>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   },
                 )}
               </div>
 
               {/* Capacity note */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="mt-4 pt-4 border-t border-gray-100"
+              >
                 <p className="text-[11px] text-gray-400 leading-relaxed">
                   Capacity:{" "}
                   <span className="font-semibold text-gray-600">
@@ -364,95 +556,135 @@ const AvailabilityPage = () => {
                   </span>
                   . Almost Full when ≥ {ALMOST_FULL_THRESHOLD} hrs booked.
                 </p>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Selected date info */}
-            {selectedDate && selectedStatus ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-pink-500" />
-                  <h3 className="font-bold text-gray-800 text-sm">
-                    Selected Date
-                  </h3>
-                </div>
-
-                <div>
-                  <p className="text-xl font-extrabold text-gray-900">
-                    {selectedDate.toLocaleDateString("en-US", {
-                      weekday: "long",
-                    })}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {selectedDate.toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-
-                <span
-                  className={`self-start text-xs font-semibold px-3 py-1 rounded-full ${statusConfig[selectedStatus].badge}`}
+            <AnimatePresence mode="wait">
+              {selectedDate && selectedStatus ? (
+                <motion.div
+                  ref={selectedPanelRef}
+                  key={selectedDate.toISOString()}
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
                 >
-                  {statusConfig[selectedStatus].label}
-                </span>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4 text-pink-500" />
+                    <h3 className="font-bold text-gray-800 text-sm">
+                      Selected Date
+                    </h3>
+                  </div>
 
-                {/* Hours remaining bar */}
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-gray-400">Hours remaining</span>
-                    <span className="font-bold text-gray-700">
-                      {selectedRemainingHours} / {TOTAL_HOURS} hrs
+                  <div>
+                    <p className="text-xl font-extrabold text-gray-900">
+                      {selectedDate.toLocaleDateString("en-US", {
+                        weekday: "long",
+                      })}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {selectedDate.toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                    className={`self-start text-xs font-semibold px-3 py-1 rounded-full ${statusConfig[selectedStatus].badge}`}
+                  >
+                    {statusConfig[selectedStatus].label}
+                  </motion.span>
+
+                  {/* Hours remaining bar */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-gray-400">Hours remaining</span>
+                      <motion.span
+                        key={selectedRemainingHours}
+                        initial={{ scale: 1.2, color: "#ec4899" }}
+                        animate={{ scale: 1, color: "#374151" }}
+                        transition={{ type: "spring", stiffness: 400 }}
+                        className="font-bold text-gray-700"
+                      >
+                        {selectedRemainingHours} / {TOTAL_HOURS} hrs
+                      </motion.span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${(selectedRemainingHours / TOTAL_HOURS) * 100}%`,
+                        }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className={`h-full rounded-full transition-all ${
+                          selectedStatus === "available"
+                            ? "bg-emerald-400"
+                            : selectedStatus === "almost-full"
+                              ? "bg-amber-400"
+                              : "bg-red-400"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-pink-50 to-pink-100/50 rounded-xl p-3 text-xs text-gray-500 leading-relaxed">
+                    ⏰ Court hours:{" "}
+                    <span className="font-semibold text-gray-700">
+                      5:00 PM – 5:00 AM
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        selectedStatus === "available"
-                          ? "bg-emerald-400"
-                          : selectedStatus === "almost-full"
-                            ? "bg-amber-400"
-                            : "bg-red-400"
-                      }`}
-                      style={{
-                        width: `${(selectedRemainingHours / TOTAL_HOURS) * 100}%`,
-                      }}
-                    />
-                  </div>
-                </div>
 
-                <div className="bg-pink-50 rounded-xl p-3 text-xs text-gray-500 leading-relaxed">
-                  ⏰ Court hours:{" "}
-                  <span className="font-semibold text-gray-700">
-                    5:00 PM – 5:00 AM
-                  </span>
-                </div>
-
-                <button
-                  onClick={handleBookThisDay}
-                  className="w-full bg-gradient-to-r from-pink-500 to-pink-400 text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition cursor-pointer"
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleBookThisDay}
+                    className="book-button w-full bg-gradient-to-r from-pink-500 to-pink-400 text-white py-3 rounded-xl font-semibold text-sm hover:opacity-90 transition cursor-pointer shadow-md hover:shadow-lg"
+                  >
+                    Book This Day
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5 flex flex-col items-center justify-center gap-3 text-center min-h-[220px]"
                 >
-                  Book This Day
-                </button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5 flex flex-col items-center justify-center gap-3 text-center min-h-[180px]">
-                <Circle className="w-8 h-8 text-pink-200" />
-                <p className="text-sm text-gray-400">
-                  Click an available date on the calendar to book it.
-                </p>
-              </div>
-            )}
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    <Circle className="w-8 h-8 text-pink-200" />
+                  </motion.div>
+                  <p className="text-sm text-gray-400">
+                    Click an available date on the calendar to book it.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Court hours card */}
-            <div className="bg-gradient-to-br from-pink-500 to-pink-400 rounded-2xl p-5 text-white">
-              <p className="font-bold text-sm mb-1">Court Hours</p>
+            <motion.div
+              ref={hoursCardRef}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              whileHover={{ scale: 1.02, y: -3 }}
+              className="bg-gradient-to-br from-pink-500 to-pink-400 rounded-2xl p-5 text-white shadow-lg"
+            >
+              <p className="font-bold text-sm mb-1 opacity-90">Court Hours</p>
               <p className="text-2xl font-extrabold">5 PM – 5 AM</p>
               <p className="text-pink-100 text-xs mt-1">
                 Open daily · ₱250/hour
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

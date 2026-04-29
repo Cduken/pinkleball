@@ -3,9 +3,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 //Booking.tsx page
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import gsap from "gsap";
 import {
   CalendarDays,
   Clock,
@@ -55,6 +57,9 @@ const MONTHS = [
 
 const HOURLY_RATE = 250;
 
+// Active statuses that should block time slots
+const ACTIVE_STATUSES = ["pending", "approved", "confirmed"];
+
 // ── Time helpers ──────────────────────────────────────────────────────────────
 function timeToMinutes(t: string): number {
   const [timePart, meridiem] = t.split(" ");
@@ -81,21 +86,16 @@ function getMaxHours(startTime: string): number {
   const startMins = timeToMinutes(startTime);
   const endLimit = 5 * 60; // 5:00 AM = 300 mins
 
-  // Calculate available minutes until 5 AM
   let availableMinutes;
   if (startMins >= 17 * 60) {
-    // 5 PM or later
-    // From start time to midnight, then to 5 AM
     availableMinutes = 24 * 60 - startMins + endLimit;
   } else {
-    // Early morning hours (12 AM to 4 AM)
     availableMinutes = endLimit - startMins;
   }
 
   return Math.min(Math.floor(availableMinutes / 60), 12);
 }
 
-// FIXED: Proper overlap detection for time slots, especially across midnight
 function isTimeSlotAvailable(
   slotStart: string,
   bookedSlots: Array<{ start_time: string; hours: number }>,
@@ -106,39 +106,23 @@ function isTimeSlotAvailable(
   const slotStartMins = timeToMinutes(slotStart);
   const slotEndMinsRaw = slotStartMins + durationHours * 60;
 
-  // Normalize end time for comparison (handle wrapping past midnight)
-  // We need to consider two cases for ending time:
-  // 1. If it ends before midnight (or at midnight)
-  // 2. If it wraps past midnight
-
   for (const booked of bookedSlots) {
     const bookedStartMins = timeToMinutes(booked.start_time);
     const bookedEndMinsRaw = bookedStartMins + booked.hours * 60;
 
-    // Check for overlap considering the booking window (5 PM to 5 AM next day)
-    // We need to check if the time ranges overlap within the operating hours
-
-    // Simple direct overlap check (both within same day or before midnight)
     let slotStart = slotStartMins;
     let slotEnd = slotEndMinsRaw;
     let bookedStart = bookedStartMins;
     let bookedEnd = bookedEndMinsRaw;
 
-    // Check if there's an overlap
-    // An overlap exists if: slotStart < bookedEnd AND slotEnd > bookedStart
     if (slotStart < bookedEnd && slotEnd > bookedStart) {
       return false;
     }
 
-    // Also check for the special case where one booking wraps past midnight
-    // by checking with adjusted times (add 24 hours to one set for comparison)
     if (slotEndMinsRaw > 24 * 60 || bookedEndMinsRaw > 24 * 60) {
-      // Check with slot shifted forward by 24 hours
       if (slotStart + 24 * 60 < bookedEnd && slotEnd + 24 * 60 > bookedStart) {
         return false;
       }
-
-      // Check with booked shifted forward by 24 hours
       if (slotStart < bookedEnd + 24 * 60 && slotEnd > bookedStart + 24 * 60) {
         return false;
       }
@@ -148,30 +132,25 @@ function isTimeSlotAvailable(
   return true;
 }
 
-// Check if a specific time slot button should be disabled
 function shouldDisableTimeSlot(
   slotStart: string,
   bookedSlots: Array<{ start_time: string; hours: number }>,
 ): boolean {
   if (bookedSlots.length === 0) return false;
-
   return !isTimeSlotAvailable(slotStart, bookedSlots, 1);
 }
 
-// ── Parse ?date=YYYY-MM-DD from URL ──────────────────────────────────────────
 function parseDateParam(param: string | null): Date | null {
   if (!param) return null;
   const [y, m, d] = param.split("-").map(Number);
   if (!y || !m || !d) return null;
   const date = new Date(y, m - 1, d);
-  // Reject past dates
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (date < today) return null;
   return date;
 }
 
-// ── Generate booking ID ───────────────────────────────────────────────────────
 async function generateBookingId(): Promise<string> {
   const { count, error } = await supabase
     .from("reservations")
@@ -187,8 +166,6 @@ const BookingPage = () => {
   const [searchParams] = useSearchParams();
 
   const today = new Date();
-
-  // Pre-fill date from ?date= query param (passed by Availability page)
   const preselectedDate = parseDateParam(searchParams.get("date"));
 
   const [currentMonth, setCurrentMonth] = useState(
@@ -205,12 +182,74 @@ const BookingPage = () => {
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  // New state for booked slots
   const [bookedSlots, setBookedSlots] = useState<
     Array<{ start_time: string; hours: number }>
   >([]);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
+
+  // Refs for GSAP animations
+  const headerRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const personalInfoRef = useRef<HTMLDivElement>(null);
+  const timeSlotsRef = useRef<HTMLDivElement>(null);
+  const durationRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  // GSAP entrance animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+      );
+      gsap.fromTo(
+        [calendarRef.current, personalInfoRef.current],
+        { opacity: 0, x: -40 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: "back.out(0.6)",
+        },
+      );
+      gsap.fromTo(
+        [timeSlotsRef.current, durationRef.current, summaryRef.current],
+        { opacity: 0, x: 40 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.7,
+          stagger: 0.15,
+          ease: "back.out(0.6)",
+          delay: 0.2,
+        },
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
+
+  // Animate when selectedTime changes
+  useEffect(() => {
+    if (selectedTime) {
+      gsap.fromTo(
+        ".time-selected-effect",
+        { scale: 0.9, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.4, ease: "elastic.out(1, 0.5)" },
+      );
+    }
+  }, [selectedTime]);
+
+  // Animate when hours change
+  useEffect(() => {
+    gsap.fromTo(
+      ".duration-change-effect",
+      { scale: 1.1, color: "#ec4899" },
+      { scale: 1, color: "#374151", duration: 0.3, ease: "back.out(1.2)" },
+    );
+  }, [hours]);
 
   // Fetch existing bookings when selected date changes
   useEffect(() => {
@@ -229,7 +268,7 @@ const BookingPage = () => {
           .from("reservations")
           .select("start_time, hours, status")
           .eq("date", dateStr)
-          .eq("status", "pending");
+          .in("status", ACTIVE_STATUSES); // ✅ FIX: Include all active statuses
 
         if (error) throw error;
 
@@ -240,14 +279,11 @@ const BookingPage = () => {
 
         setBookedSlots(booked);
 
-        // If current selected time is no longer available, clear it
         if (selectedTime && !isTimeSlotAvailable(selectedTime, booked, hours)) {
           setSelectedTime(null);
           toast.error(
             "This time slot is no longer available. Please select another time.",
-            {
-              duration: 3000,
-            },
+            { duration: 3000 },
           );
         }
       } catch (err) {
@@ -259,9 +295,8 @@ const BookingPage = () => {
     };
 
     fetchBookings();
-  }, [selectedDate]); // Remove selectedTime from dependency array to avoid unnecessary refetches
+  }, [selectedDate]);
 
-  // Check if selected time is still valid when hours change
   useEffect(() => {
     if (!selectedTime || bookedSlots.length === 0) return;
 
@@ -278,25 +313,49 @@ const BookingPage = () => {
       );
       setSelectedTime(null);
     }
-  }, [hours]); // Only depend on hours changes
+  }, [hours]);
 
-  // ── Calendar helpers ────────────────────────────────────────────────────────
   const getDaysInMonth = (m: number, y: number) =>
     new Date(y, m + 1, 0).getDate();
   const getFirstDayOfMonth = (m: number, y: number) =>
     new Date(y, m, 1).getDay();
 
   const prevMonth = () => {
+    gsap.to(".calendar-grid", {
+      scale: 0.95,
+      duration: 0.15,
+      ease: "power2.in",
+    });
     if (currentMonth === 0) {
       setCurrentMonth(11);
       setCurrentYear((y) => y - 1);
     } else setCurrentMonth((m) => m - 1);
+    setTimeout(() => {
+      gsap.to(".calendar-grid", {
+        scale: 1,
+        duration: 0.2,
+        ease: "back.out(0.8)",
+      });
+    }, 100);
   };
+
   const nextMonth = () => {
+    gsap.to(".calendar-grid", {
+      scale: 0.95,
+      duration: 0.15,
+      ease: "power2.in",
+    });
     if (currentMonth === 11) {
       setCurrentMonth(0);
       setCurrentYear((y) => y + 1);
     } else setCurrentMonth((m) => m + 1);
+    setTimeout(() => {
+      gsap.to(".calendar-grid", {
+        scale: 1,
+        duration: 0.2,
+        ease: "back.out(0.8)",
+      });
+    }, 100);
   };
 
   const isPast = (day: number) => {
@@ -315,9 +374,7 @@ const BookingPage = () => {
     today.getMonth() === currentMonth &&
     today.getFullYear() === currentYear;
 
-  // ── Time selection ──────────────────────────────────────────────────────────
   const handleTimeSelect = (slot: string) => {
-    // Check if the slot is available (not fully booked)
     if (shouldDisableTimeSlot(slot, bookedSlots)) {
       toast.error("This time slot is already fully booked.");
       return;
@@ -332,7 +389,6 @@ const BookingPage = () => {
   const endTime = selectedTime ? getEndTime(selectedTime, hours) : null;
   const totalCost = HOURLY_RATE * hours;
 
-  // Check if the selected time with current duration is available
   const isSelectedTimeValid = useCallback(() => {
     if (!selectedTime || !selectedDate) return true;
     return isTimeSlotAvailable(selectedTime, bookedSlots, hours);
@@ -349,11 +405,9 @@ const BookingPage = () => {
   const daysInMonth = getDaysInMonth(currentMonth, currentYear);
   const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
 
-  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!canSubmit || !selectedDate || !selectedTime) return;
 
-    // Double-check availability before submitting
     if (!isTimeSlotAvailable(selectedTime, bookedSlots, hours)) {
       toast.error(
         "This time slot is no longer available. Please select another time.",
@@ -380,19 +434,17 @@ const BookingPage = () => {
       });
 
       if (error) {
-        // Check if it's a duplicate error
         if (error.message.includes("duplicate") || error.code === "23505") {
           toast.error(
             "This time slot was just booked by someone else. Please select another time.",
           );
-          // Refresh availability
           const pad2 = (n: number) => String(n).padStart(2, "0");
           const dateStr2 = `${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth() + 1)}-${pad2(selectedDate.getDate())}`;
           const { data: freshData } = await supabase
             .from("reservations")
             .select("start_time, hours, status")
             .eq("date", dateStr2)
-            .eq("status", "pending");
+            .in("status", ACTIVE_STATUSES); // ✅ FIX: Include all active statuses
 
           const freshBooked = (freshData || []).map((booking) => ({
             start_time: booking.start_time,
@@ -421,26 +473,52 @@ const BookingPage = () => {
     }
   };
 
-  // Check which time slots are fully booked (no availability at all)
-
+  // Floating decorative elements animation
+  useEffect(() => {
+    const floatingElements = document.querySelectorAll(".floating-deco");
+    floatingElements.forEach((el, i) => {
+      gsap.to(el, {
+        y: "random(-15, 15)",
+        x: "random(-10, 10)",
+        duration: "random(3, 6)",
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        delay: i * 0.3,
+      });
+    });
+  }, []);
 
   return (
-    <div className="min-h-screen bg-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-50 to-pink-100/50">
       {/* Header */}
-      <div className="bg-white border-b border-pink-100 px-4 py-4">
+      <motion.div
+        ref={headerRef}
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-white/80 backdrop-blur-md border-b border-pink-100 px-4 py-4 sticky top-0 z-20"
+      >
         <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05, x: -3 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate(-1)}
             className="p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
+          </motion.button>
           <MainLogo />
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <div className="mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-8"
+        >
           <h1 className="text-3xl font-extrabold text-gray-900">
             Book a <span className="text-pink-500">Court</span>
           </h1>
@@ -448,9 +526,11 @@ const BookingPage = () => {
             Fill in the details below to reserve your slot.
           </p>
 
-          {/* Info badges */}
           <div className="flex flex-wrap items-center gap-2 mt-3">
-            <div className="inline-flex items-center gap-1.5 bg-white border border-pink-100 rounded-full px-3 py-1.5 shadow-sm">
+            <motion.div
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="inline-flex items-center gap-1.5 bg-white border border-pink-100 rounded-full px-3 py-1.5 shadow-sm"
+            >
               <PhilippinePeso className="w-3.5 h-3.5 text-pink-500" />
               <span className="text-xs font-semibold text-gray-700">
                 ₱250{" "}
@@ -458,18 +538,25 @@ const BookingPage = () => {
                   / hour per court
                 </span>
               </span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 bg-white border border-pink-100 rounded-full px-3 py-1.5 shadow-sm">
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.02, y: -2 }}
+              className="inline-flex items-center gap-1.5 bg-white border border-pink-100 rounded-full px-3 py-1.5 shadow-sm"
+            >
               <Clock className="w-3.5 h-3.5 text-pink-500" />
               <span className="text-xs font-semibold text-gray-700">
                 Open <span className="text-pink-500">5:00 PM – 5:00 AM</span>
               </span>
-            </div>
+            </motion.div>
           </div>
 
-          {/* Pre-selected date banner — shown when coming from Availability page */}
           {preselectedDate && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-4 py-2.5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="mt-4 inline-flex items-center gap-2 bg-pink-50 border border-pink-200 rounded-xl px-4 py-2.5"
+            >
               <CalendarDays className="w-4 h-4 text-pink-500" />
               <span className="text-sm text-gray-700">
                 Booking for{" "}
@@ -482,36 +569,46 @@ const BookingPage = () => {
                   })}
                 </span>
               </span>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* ── Left Column ── */}
           <div className="flex flex-col gap-6">
             {/* Calendar */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <motion.div
+              ref={calendarRef}
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-2 mb-4">
                 <CalendarDays className="w-4 h-4 text-pink-500" />
                 <h2 className="font-bold text-gray-800 text-sm">Select Date</h2>
               </div>
 
               <div className="flex items-center justify-between mb-4">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={prevMonth}
                   className="p-1 rounded-lg hover:bg-pink-50 transition cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4 text-gray-500" />
-                </button>
+                </motion.button>
                 <span className="font-bold text-gray-800 text-sm">
                   {MONTHS[currentMonth]} {currentYear}
                 </span>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={nextMonth}
                   className="p-1 rounded-lg hover:bg-pink-50 transition cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4 text-gray-500" />
-                </button>
+                </motion.button>
               </div>
 
               <div className="grid grid-cols-7 mb-2">
@@ -525,7 +622,7 @@ const BookingPage = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-1 calendar-grid">
                 {Array.from({ length: firstDay }).map((_, i) => (
                   <div key={`empty-${i}`} />
                 ))}
@@ -535,9 +632,11 @@ const BookingPage = () => {
                   const selected = isSelected(day);
                   const tod = isToday(day);
                   return (
-                    <button
+                    <motion.button
                       key={day}
                       disabled={past}
+                      whileHover={!past ? { scale: 1.05, y: -2 } : {}}
+                      whileTap={!past ? { scale: 0.95 } : {}}
                       onClick={() =>
                         setSelectedDate(
                           new Date(currentYear, currentMonth, day),
@@ -552,25 +651,36 @@ const BookingPage = () => {
                       `}
                     >
                       {day}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
 
               {selectedDate && (
-                <p className="text-xs text-pink-500 font-medium mt-3 text-center">
+                <motion.p
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={selectedDate.toISOString()}
+                  className="text-xs text-pink-500 font-medium mt-3 text-center"
+                >
                   ✓{" "}
                   {selectedDate.toLocaleDateString("en-US", {
                     weekday: "long",
                     month: "long",
                     day: "numeric",
                   })}
-                </p>
+                </motion.p>
               )}
-            </div>
+            </motion.div>
 
             {/* Personal Info */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <motion.div
+              ref={personalInfoRef}
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow"
+            >
               <h2 className="font-bold text-gray-800 text-sm mb-4 flex items-center gap-2">
                 <User className="w-4 h-4 text-pink-500" />
                 Your Details
@@ -580,7 +690,8 @@ const BookingPage = () => {
                   <label className="text-xs text-gray-500 font-medium mb-1.5 block">
                     Full Name
                   </label>
-                  <input
+                  <motion.input
+                    whileFocus={{ scale: 1.01, borderColor: "#ec4899" }}
                     type="text"
                     placeholder="e.g. Juan dela Cruz"
                     value={name}
@@ -594,7 +705,8 @@ const BookingPage = () => {
                       <Phone className="w-3 h-3" /> Contact Number
                     </span>
                   </label>
-                  <input
+                  <motion.input
+                    whileFocus={{ scale: 1.01, borderColor: "#ec4899" }}
                     type="tel"
                     placeholder="e.g. 09123456789"
                     value={contact}
@@ -603,13 +715,19 @@ const BookingPage = () => {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* ── Right Column ── */}
           <div className="flex flex-col gap-6">
             {/* Time Slots */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <motion.div
+              ref={timeSlotsRef}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="w-4 h-4 text-pink-500" />
                 <h2 className="font-bold text-gray-800 text-sm">
@@ -641,7 +759,7 @@ const BookingPage = () => {
                   )}
 
                   <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map((slot) => {
+                    {timeSlots.map((slot, idx) => {
                       const isFullyBooked = shouldDisableTimeSlot(
                         slot,
                         bookedSlots,
@@ -649,8 +767,24 @@ const BookingPage = () => {
                       const isSelected = selectedTime === slot;
 
                       return (
-                        <button
+                        <motion.button
                           key={slot}
+                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: idx * 0.03, duration: 0.3 }}
+                          whileHover={
+                            !isFullyBooked
+                              ? {
+                                  scale: 1.05,
+                                  y: -3,
+                                  transition: {
+                                    type: "spring",
+                                    stiffness: 400,
+                                  },
+                                }
+                              : {}
+                          }
+                          whileTap={!isFullyBooked ? { scale: 0.95 } : {}}
                           onClick={() =>
                             !isFullyBooked && handleTimeSelect(slot)
                           }
@@ -662,7 +796,7 @@ const BookingPage = () => {
                                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
                                 : isSelected
                                   ? "bg-gradient-to-r from-pink-500 to-pink-400 text-white border-transparent shadow-md scale-105"
-                                  : "bg-white border border-gray-200 text-gray-700 hover:border-pink-400 hover:text-pink-600 hover:shadow-md hover:scale-105 cursor-pointer"
+                                  : "bg-white border border-gray-200 text-gray-700 hover:border-pink-400 hover:text-pink-600 hover:shadow-md cursor-pointer"
                             }
                           `}
                           title={
@@ -684,12 +818,11 @@ const BookingPage = () => {
                               <div className="w-full h-0.5 bg-red-300 rotate-45 transform origin-center"></div>
                             </div>
                           )}
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
 
-                  {/* Legend */}
                   <div className="mt-4 flex items-center justify-center gap-4 text-xs">
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-3 bg-gradient-to-r from-pink-500 to-pink-400 rounded-full"></div>
@@ -706,7 +839,11 @@ const BookingPage = () => {
                   </div>
 
                   {bookedSlots.length > 0 && (
-                    <div className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 border border-gray-100"
+                    >
                       <span className="font-medium text-gray-700">
                         Currently Booked Slots:
                       </span>
@@ -722,25 +859,36 @@ const BookingPage = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </>
               )}
-            </div>
+            </motion.div>
 
             {/* Duration */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <motion.div
+              ref={durationRef}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow"
+            >
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-pink-500" />
                   <h2 className="font-bold text-gray-800 text-sm">Duration</h2>
                 </div>
-                <span className="text-xs text-gray-400">
+                <motion.span
+                  key={totalCost}
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="text-xs text-gray-400"
+                >
                   ₱250 × {hours}hr ={" "}
                   <span className="text-pink-500 font-bold">
                     ₱{totalCost.toLocaleString()}
                   </span>
-                </span>
+                </motion.span>
               </div>
               <p className="text-xs text-gray-400 mb-4">
                 {selectedTime
@@ -749,34 +897,46 @@ const BookingPage = () => {
               </p>
 
               <div className="flex items-center gap-4 justify-center">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setHours((h) => Math.max(1, h - 1))}
                   className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition cursor-pointer"
                 >
                   <Minus className="w-4 h-4" />
-                </button>
+                </motion.button>
                 <div className="text-center">
-                  <span className="text-4xl font-extrabold text-gray-800">
+                  <motion.span
+                    key={hours}
+                    initial={{ scale: 1.2, color: "#ec4899" }}
+                    animate={{ scale: 1, color: "#374151" }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                    className="text-4xl font-extrabold text-gray-800 duration-change-effect"
+                  >
                     {hours}
-                  </span>
+                  </motion.span>
                   <p className="text-xs text-gray-400">
                     hour{hours > 1 ? "s" : ""}
                   </p>
                 </div>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1, backgroundColor: "#fce7f3" }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => setHours((h) => Math.min(maxHours, h + 1))}
                   className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                </button>
+                </motion.button>
               </div>
 
               <div className="flex gap-2 mt-4 justify-center flex-wrap">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
                   .filter((h) => h <= maxHours)
                   .map((h) => (
-                    <button
+                    <motion.button
                       key={h}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => setHours(h)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition cursor-pointer
                       ${
@@ -787,40 +947,62 @@ const BookingPage = () => {
                     `}
                     >
                       {h}h
-                    </button>
+                    </motion.button>
                   ))}
               </div>
 
               {selectedTime && endTime && (
-                <div className="mt-4 flex items-center justify-center gap-2 bg-pink-50 rounded-xl px-4 py-2.5">
-                  <Clock className="w-3.5 h-3.5 text-pink-400" />
-                  <span className="text-xs text-gray-600">
-                    <span className="font-semibold text-pink-500">
-                      {selectedTime}
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 flex items-center justify-center gap-2 bg-pink-50 rounded-xl px-4 py-2.5 time-selected-effect"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-pink-400" />
+                    <span className="text-xs text-gray-600">
+                      <span className="font-semibold text-pink-500">
+                        {selectedTime}
+                      </span>
+                      {" → "}
+                      <span className="font-semibold text-pink-500">
+                        {endTime}
+                      </span>
                     </span>
-                    {" → "}
-                    <span className="font-semibold text-pink-500">
-                      {endTime}
-                    </span>
-                  </span>
-                </div>
+                  </motion.div>
+                </AnimatePresence>
               )}
 
               {selectedTime && !isSelectedTimeValid() && (
-                <div className="mt-3 text-xs text-red-500 text-center bg-red-50 rounded-lg p-2">
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="mt-3 text-xs text-red-500 text-center bg-red-50 rounded-lg p-2"
+                >
                   ⚠️ This duration conflicts with an existing booking. Please
                   select a different time or shorter duration.
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Summary & Submit */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100">
+            <motion.div
+              ref={summaryRef}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-pink-100 hover:shadow-md transition-shadow"
+            >
               <h2 className="font-bold text-gray-800 text-sm mb-4">
                 Booking Summary
               </h2>
               <div className="flex flex-col gap-2 text-xs mb-4">
-                <div className="flex justify-between">
+                <motion.div
+                  key={selectedDate?.toISOString()}
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-between"
+                >
                   <span className="text-gray-400">Date</span>
                   <span className="font-medium text-gray-700">
                     {selectedDate ? (
@@ -833,15 +1015,20 @@ const BookingPage = () => {
                       <span className="text-gray-300">Not selected</span>
                     )}
                   </span>
-                </div>
-                <div className="flex justify-between">
+                </motion.div>
+                <motion.div
+                  key={selectedTime}
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex justify-between"
+                >
                   <span className="text-gray-400">Start Time</span>
                   <span className="font-medium text-gray-700">
                     {selectedTime ?? (
                       <span className="text-gray-300">Not selected</span>
                     )}
                   </span>
-                </div>
+                </motion.div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">End Time</span>
                   <span className="font-medium text-gray-700">
@@ -872,18 +1059,26 @@ const BookingPage = () => {
 
               <div className="flex justify-between items-center border-t border-pink-100 pt-3 mb-5">
                 <span className="text-sm font-bold text-gray-700">Total</span>
-                <span className="text-lg font-extrabold text-pink-500">
+                <motion.span
+                  key={totalCost}
+                  initial={{ scale: 1.2, color: "#ec4899" }}
+                  animate={{ scale: 1, color: "#ec4899" }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                  className="text-lg font-extrabold text-pink-500"
+                >
                   ₱{totalCost.toLocaleString()}
-                </span>
+                </motion.span>
               </div>
 
-              <button
+              <motion.button
+                whileHover={canSubmit ? { scale: 1.02, y: -2 } : {}}
+                whileTap={canSubmit ? { scale: 0.98 } : {}}
                 onClick={handleSubmit}
                 disabled={!canSubmit}
                 className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2
                   ${
                     canSubmit
-                      ? "bg-gradient-to-r from-pink-500 to-pink-400 text-white hover:opacity-90 cursor-pointer"
+                      ? "bg-gradient-to-r from-pink-500 to-pink-400 text-white hover:opacity-90 cursor-pointer shadow-md hover:shadow-lg"
                       : "bg-gray-100 text-gray-300 cursor-not-allowed"
                   }
                 `}
@@ -895,11 +1090,11 @@ const BookingPage = () => {
                 ) : (
                   "Confirm Booking"
                 )}
-              </button>
+              </motion.button>
               <p className="text-xs text-center text-gray-300 mt-3">
                 No account needed ❤️
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>

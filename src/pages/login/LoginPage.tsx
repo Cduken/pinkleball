@@ -1,11 +1,11 @@
 //LoginPage.tsx
-
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, AlertTriangle, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertTriangle, Loader2, ArrowLeftCircle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import toast from "react-hot-toast"; // Add this import
 import PinkleBall from "../../assets/MainLogo/PinkleBall.png";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -213,13 +213,17 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-0 relative overflow-hidden"
+      className="min-h-screen flex items-center justify-center p-0 relative overflow-hidden relative"
       style={{
         background:
           "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 25%, #fbcfe8 50%, #f5f3ff 75%, #ede9fe 100%)",
         fontFamily: "'DM Sans', sans-serif",
       }}
     >
+
+      <ArrowLeftCircle size={32} onClick={() => navigate('/')} className="absolute z-50 top-10 left-10 text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out" />
+
+
       {/* ── Animated Gradient Bubbles ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large bubble top-right */}
@@ -293,6 +297,9 @@ export default function LoginPage() {
             "0 20px 60px rgba(236,72,153,0.1), 0 0 0 1px rgba(255,255,255,0.5)",
         }}
       >
+
+      {/* <ArrowLeftCircle size={32} onClick={() => navigate('/')} className="absolute top-10 left-10 block lg:hidden text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out" /> */}
+
         {/* ── Left Side - Image/Branding ── */}
         <div className="lg:w-1/2 p-12 flex flex-col items-center justify-center relative overflow-hidden">
           {/* Subtle gradient overlay */}

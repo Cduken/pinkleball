@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   CalendarDays,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
+import gsap from "gsap";
 import MainLogo from "../components/MainLogo/MainLogo";
 import { useReservations, type Status } from "../hooks/useReservations";
 
@@ -52,31 +54,36 @@ const statusConfig = {
 
 const ALL_STATUSES: Status[] = ["approved", "pending", "cancelled"];
 
-// ── Skeleton card ─────────────────────────────────────────────────────────────
+// ── Skeleton card with animation ─────────────────────────────────────────────
 const SkeletonCard = () => (
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row gap-4 animate-pulse">
-    <div className="hidden sm:flex w-1 self-stretch rounded-full bg-gray-100" />
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row gap-4"
+  >
+    <div className="hidden sm:flex w-1 self-stretch rounded-full bg-gray-100 animate-pulse" />
     <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gray-100" />
+          <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse" />
           <div className="flex flex-col gap-1">
-            <div className="h-3 w-28 bg-gray-100 rounded-full" />
-            <div className="h-2 w-16 bg-gray-100 rounded-full" />
+            <div className="h-3 w-28 bg-gray-100 rounded-full animate-pulse" />
+            <div className="h-2 w-16 bg-gray-100 rounded-full animate-pulse" />
           </div>
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <div className="h-3 w-36 bg-gray-100 rounded-full" />
-        <div className="h-3 w-24 bg-gray-100 rounded-full" />
+        <div className="h-3 w-36 bg-gray-100 rounded-full animate-pulse" />
+        <div className="h-3 w-24 bg-gray-100 rounded-full animate-pulse" />
       </div>
       <div className="flex flex-col gap-2">
-        <div className="h-3 w-20 bg-gray-100 rounded-full" />
-        <div className="h-3 w-28 bg-gray-100 rounded-full" />
+        <div className="h-3 w-20 bg-gray-100 rounded-full animate-pulse" />
+        <div className="h-3 w-28 bg-gray-100 rounded-full animate-pulse" />
       </div>
     </div>
-    <div className="h-7 w-24 bg-gray-100 rounded-full self-center" />
-  </div>
+    <div className="h-7 w-24 bg-gray-100 rounded-full animate-pulse self-center" />
+  </motion.div>
 );
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -84,10 +91,45 @@ const ReservationsPage = () => {
   const navigate = useNavigate();
   const { data: reservations, loading, error, refetch } = useReservations();
 
-  const [search, setSearch]             = useState("");
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
-  const [dateFrom, setDateFrom]         = useState("");
-  const [dateTo, setDateTo]             = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // Refs for GSAP animations
+  const headerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const statsRef = useRef<HTMLDivElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // GSAP entrance animation
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
+      );
+      gsap.fromTo(
+        titleRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "back.out(0.6)", delay: 0.1 }
+      );
+      gsap.fromTo(
+        statsRef.current,
+        { opacity: 0, scale: 0.95 },
+        { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(0.5)", delay: 0.2 }
+      );
+      gsap.fromTo(
+        filtersRef.current,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", delay: 0.3 }
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
 
   const filtered = useMemo(() =>
     reservations.filter(r => {
@@ -96,26 +138,57 @@ const ReservationsPage = () => {
         (r.name.toLowerCase().includes(q) || r.contact.includes(q) || r.id.toLowerCase().includes(q)) &&
         (statusFilter === "all" || r.status === statusFilter) &&
         (!dateFrom || r.date >= dateFrom) &&
-        (!dateTo   || r.date <= dateTo)
+        (!dateTo || r.date <= dateTo)
       );
     }),
     [reservations, search, statusFilter, dateFrom, dateTo]
   );
 
   const counts = useMemo(() => ({
-    all:       reservations.length,
-    approved:  reservations.filter(r => r.status === "approved").length,
-    pending:   reservations.filter(r => r.status === "pending").length,
+    all: reservations.length,
+    approved: reservations.filter(r => r.status === "approved").length,
+    pending: reservations.filter(r => r.status === "pending").length,
     cancelled: reservations.filter(r => r.status === "cancelled").length,
   }), [reservations]);
+
+  // Animate when filtered results change
+  useEffect(() => {
+    if (!loading && listRef.current) {
+      gsap.fromTo(
+        ".reservation-card",
+        { opacity: 0, y: 30, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, stagger: 0.08, ease: "back.out(0.6)" }
+      );
+    }
+  }, [filtered, loading]);
+
+  // Animate stat cards when counts change
+  useEffect(() => {
+    if (statsRef.current && !loading) {
+      gsap.fromTo(
+        ".stat-card",
+        { scale: 1 },
+        { scale: 1.02, duration: 0.2, yoyo: true, repeat: 1, ease: "power2.inOut" }
+      );
+    }
+  }, [counts, loading]);
 
   const hasFilters = Boolean(search || statusFilter !== "all" || dateFrom || dateTo);
 
   const clearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setDateFrom("");
-    setDateTo("");
+    // Animate clear button
+    gsap.to(".clear-filters", {
+      scale: 0.95,
+      duration: 0.1,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => {
+        setSearch("");
+        setStatusFilter("all");
+        setDateFrom("");
+        setDateTo("");
+      }
+    });
   };
 
   const formatDate = (dateStr: string) =>
@@ -128,65 +201,119 @@ const ReservationsPage = () => {
       month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
     });
 
+  // Floating decorative elements animation
+  useEffect(() => {
+    const floatingElements = document.querySelectorAll(".floating-deco-res");
+    floatingElements.forEach((el, i) => {
+      gsap.to(el, {
+        y: "random(-15, 15)",
+        x: "random(-10, 10)",
+        duration: "random(3, 6)",
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        delay: i * 0.3,
+      });
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-50 to-pink-100/50">
+     
+
       {/* Header */}
-      <div className="bg-white border-b border-pink-100 px-4 py-4 sticky top-0 z-20">
+      <motion.div
+        ref={headerRef}
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-white/80 backdrop-blur-md border-b border-pink-100 px-4 py-4 sticky top-0 z-20"
+      >
         <div className="max-w-5xl mx-auto flex items-center gap-4">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05, x: -3 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/")}
             className="p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
+          </motion.button>
           <MainLogo />
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05, rotate: 180 }}
+            whileTap={{ scale: 0.95 }}
             onClick={refetch}
             title="Refresh"
             className="ml-auto p-2 rounded-xl hover:bg-pink-50 transition cursor-pointer text-gray-400 hover:text-pink-500"
           >
             <RefreshCw className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-5xl mx-auto px-4 py-10">
         {/* Title */}
-        <div className="mb-8">
+        <motion.div
+          ref={titleRef}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
+        >
           <h1 className="text-3xl font-extrabold text-gray-900">
             All <span className="text-pink-500">Reservations</span>
           </h1>
           <p className="text-gray-400 text-sm mt-1">View and filter all court bookings.</p>
-        </div>
+        </motion.div>
 
         {/* Error banner */}
-        {error && (
-          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-6">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <p className="text-sm text-red-600 font-medium">{error}</p>
-            <button
-              onClick={refetch}
-              className="ml-auto text-xs text-red-500 hover:underline cursor-pointer"
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -20, scale: 0.95 }}
+              className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-6"
             >
-              Retry
-            </button>
-          </div>
-        )}
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="text-sm text-red-600 font-medium">{error}</p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={refetch}
+                className="ml-auto text-xs text-red-500 hover:underline cursor-pointer"
+              >
+                Retry
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <motion.div
+          ref={statsRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+        >
           {(
             [
-              { key: "all",       label: "Total",     color: "text-gray-700",   bg: "bg-white",      border: "border-gray-100"    },
-              { key: "approved",  label: "Approved",  color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-              { key: "pending",   label: "Pending",   color: "text-amber-600",  bg: "bg-amber-50",   border: "border-amber-100"   },
-              { key: "cancelled", label: "Cancelled", color: "text-red-500",    bg: "bg-red-50",     border: "border-red-100"     },
+              { key: "all", label: "Total", color: "text-gray-700", bg: "bg-white", border: "border-gray-100" },
+              { key: "approved", label: "Approved", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+              { key: "pending", label: "Pending", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-100" },
+              { key: "cancelled", label: "Cancelled", color: "text-red-500", bg: "bg-red-50", border: "border-red-100" },
             ] as const
-          ).map(({ key, label, color, bg, border }) => (
-            <button
+          ).map(({ key, label, color, bg, border }, idx) => (
+            <motion.button
               key={key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setStatusFilter(key as Status | "all")}
-              className={`${bg} border ${border} rounded-2xl p-4 text-left transition hover:shadow-md cursor-pointer
+              className={`stat-card ${bg} border ${border} rounded-2xl p-4 text-left transition hover:shadow-md cursor-pointer
                 ${statusFilter === key ? "ring-2 ring-pink-400 ring-offset-1" : ""}
               `}
             >
@@ -198,17 +325,24 @@ const ReservationsPage = () => {
                 )}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">{label}</p>
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-4 mb-6">
+        <motion.div
+          ref={filtersRef}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-white rounded-2xl border border-pink-100 shadow-sm p-4 mb-6 hover:shadow-md transition-shadow"
+        >
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-              <input
+              <motion.input
+                whileFocus={{ scale: 1.01, borderColor: "#ec4899" }}
                 type="text"
                 placeholder="Search name, contact, or ID..."
                 value={search}
@@ -223,9 +357,14 @@ const ReservationsPage = () => {
                 <Filter className="w-3.5 h-3.5" />
                 <span>Status:</span>
               </div>
-              {(["all", ...ALL_STATUSES] as const).map(s => (
-                <button
+              {(["all", ...ALL_STATUSES] as const).map((s, idx) => (
+                <motion.button
                   key={s}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 + idx * 0.05 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setStatusFilter(s)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition cursor-pointer
                     ${statusFilter === s
@@ -237,7 +376,7 @@ const ReservationsPage = () => {
                   `}
                 >
                   {s === "all" ? "All" : statusConfig[s as Status].label}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -249,131 +388,191 @@ const ReservationsPage = () => {
               <span>Date range:</span>
             </div>
             <div className="flex items-center gap-2 flex-1">
-              <input
+              <motion.input
+                whileFocus={{ scale: 1.01 }}
                 type="date"
                 value={dateFrom}
                 onChange={e => setDateFrom(e.target.value)}
                 className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-xl outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition text-gray-600"
               />
               <span className="text-gray-300 text-xs">to</span>
-              <input
+              <motion.input
+                whileFocus={{ scale: 1.01 }}
                 type="date"
                 value={dateTo}
                 onChange={e => setDateTo(e.target.value)}
                 className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-xl outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition text-gray-600"
               />
               {hasFilters && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={clearFilters}
-                  className="flex items-center gap-1 px-3 py-2 text-xs text-gray-400 hover:text-pink-500 border border-gray-200 rounded-xl hover:border-pink-300 transition cursor-pointer shrink-0"
+                  className="clear-filters flex items-center gap-1 px-3 py-2 text-xs text-gray-400 hover:text-pink-500 border border-gray-200 rounded-xl hover:border-pink-300 transition cursor-pointer shrink-0"
                 >
                   <X className="w-3 h-3" />
                   Clear
-                </button>
+                </motion.button>
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Results count */}
-        <div className="flex items-center justify-between mb-3">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="flex items-center justify-between mb-3"
+        >
           <p className="text-xs text-gray-400">
             Showing{" "}
-            <span className="font-semibold text-gray-600">{filtered.length}</span>{" "}
+            <motion.span
+              key={filtered.length}
+              initial={{ scale: 1.2, color: "#ec4899" }}
+              animate={{ scale: 1, color: "#4b5563" }}
+              transition={{ type: "spring", stiffness: 400 }}
+              className="font-semibold text-gray-600 inline-block"
+            >
+              {filtered.length}
+            </motion.span>{" "}
             reservation{filtered.length !== 1 ? "s" : ""}
             {hasFilters && " (filtered)"}
           </p>
-        </div>
+        </motion.div>
 
         {/* List */}
-        {loading ? (
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-pink-100 p-16 flex flex-col items-center gap-3 text-center">
-            <CalendarDays className="w-10 h-10 text-pink-200" />
-            <p className="font-bold text-gray-700">No reservations found</p>
-            <p className="text-xs text-gray-400">Try adjusting your filters or search query.</p>
-            {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="mt-2 px-4 py-2 bg-pink-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition cursor-pointer"
+        <div ref={listRef}>
+          {loading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white rounded-2xl border border-pink-100 p-16 flex flex-col items-center gap-3 text-center"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {filtered.map(r => {
-              const config     = statusConfig[r.status];
-              const StatusIcon = config.icon;
-
-              return (
-                <div
-                  key={r.id}
-                  className={`bg-white rounded-2xl border ${config.border} shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition hover:shadow-md`}
+                <CalendarDays className="w-10 h-10 text-pink-200" />
+              </motion.div>
+              <p className="font-bold text-gray-700">No reservations found</p>
+              <p className="text-xs text-gray-400">Try adjusting your filters or search query.</p>
+              {hasFilters && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={clearFilters}
+                  className="mt-2 px-4 py-2 bg-pink-500 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition cursor-pointer"
                 >
-                  {/* Status stripe */}
-                  <div className={`hidden sm:flex w-1 self-stretch rounded-full ${config.dot}`} />
+                  Clear Filters
+                </motion.button>
+              )}
+            </motion.div>
+          ) : (
+            <AnimatePresence>
+              <div className="flex flex-col gap-3">
+                {filtered.map((r, idx) => {
+                  const config = statusConfig[r.status];
+                  const StatusIcon = config.icon;
 
-                  {/* Info */}
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {/* Name & ID */}
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-pink-100 flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-pink-500" />
+                  return (
+                    <motion.div
+                      key={r.id}
+                      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -30, scale: 0.95 }}
+                      transition={{ delay: idx * 0.05, duration: 0.4, ease: "backOut" }}
+                      whileHover={{ scale: 1.01, y: -2 }}
+                      className={`reservation-card bg-white rounded-2xl border ${config.border} shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4 transition hover:shadow-md`}
+                    >
+                      {/* Status stripe */}
+                      <motion.div
+                        initial={{ scaleY: 0 }}
+                        animate={{ scaleY: 1 }}
+                        transition={{ delay: idx * 0.05 + 0.2 }}
+                        className={`hidden sm:flex w-1 self-stretch rounded-full ${config.dot}`}
+                      />
+
+                      {/* Info */}
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* Name & ID */}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: idx * 0.05 + 0.15, type: "spring", stiffness: 400 }}
+                              className="w-7 h-7 rounded-full bg-pink-100 flex items-center justify-center"
+                            >
+                              <User className="w-3.5 h-3.5 text-pink-500" />
+                            </motion.div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{r.name}</p>
+                              <p className="text-xs text-gray-400">{r.id}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1 ml-9">
+                            <Phone className="w-3 h-3 text-gray-300" />
+                            <span className="text-xs text-gray-400">{r.contact}</span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-800">{r.name}</p>
-                          <p className="text-xs text-gray-400">{r.id}</p>
+
+                        {/* Date & Time */}
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarDays className="w-3.5 h-3.5 text-pink-400" />
+                            <span className="text-xs font-semibold text-gray-700">{formatDate(r.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-pink-400" />
+                            <span className="text-xs text-gray-500">
+                              {r.start_time} · {r.hours}hr{r.hours > 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-gray-400">Total:</span>
+                            <motion.span
+                              key={r.total}
+                              initial={{ scale: 1.2, color: "#ec4899" }}
+                              animate={{ scale: 1, color: "#ec4899" }}
+                              transition={{ type: "spring", stiffness: 400 }}
+                              className="text-xs font-bold text-pink-500"
+                            >
+                              ₱{r.total.toLocaleString()}
+                            </motion.span>
+                          </div>
+                        </div>
+
+                        {/* Booked at */}
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-gray-400">Booked on</p>
+                          <p className="text-xs text-gray-600 font-medium">{formatBookedAt(r.booked_at)}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 mt-1 ml-9">
-                        <Phone className="w-3 h-3 text-gray-300" />
-                        <span className="text-xs text-gray-400">{r.contact}</span>
-                      </div>
-                    </div>
 
-                    {/* Date & Time */}
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <CalendarDays className="w-3.5 h-3.5 text-pink-400" />
-                        <span className="text-xs font-semibold text-gray-700">{formatDate(r.date)}</span>
+                      {/* Status badge */}
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2">
+                        <motion.span
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ delay: idx * 0.05 + 0.25, type: "spring", stiffness: 400 }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${config.badge}`}
+                        >
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          {config.label}
+                        </motion.span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-pink-400" />
-                        <span className="text-xs text-gray-500">
-                          {r.start_time} · {r.hours}hr{r.hours > 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-400">Total:</span>
-                        <span className="text-xs font-bold text-pink-500">₱{r.total.toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    {/* Booked at */}
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs text-gray-400">Booked on</p>
-                      <p className="text-xs text-gray-600 font-medium">{formatBookedAt(r.booked_at)}</p>
-                    </div>
-                  </div>
-
-                  {/* Status badge */}
-                  <div className="flex sm:flex-col items-center sm:items-end gap-2">
-                    <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${config.badge}`}>
-                      <StatusIcon className="w-3.5 h-3.5" />
-                      {config.label}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </AnimatePresence>
+          )}
+        </div>
       </div>
     </div>
   );
