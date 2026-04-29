@@ -9,7 +9,7 @@ import {
   EyeOff,
   AlertTriangle,
   Loader2,
-  ShieldCheck,
+
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import PinkleBall from "../../assets/MainLogo/PinkleBall.png";
