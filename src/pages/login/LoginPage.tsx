@@ -2,16 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  Loader2,
-
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import toast from "react-hot-toast"; // Add this import
 import PinkleBall from "../../assets/MainLogo/PinkleBall.png";
 
 export default function LoginPage() {
@@ -53,6 +46,21 @@ export default function LoginPage() {
             `AUTH ERROR → code: ${authError.status} | message: ${authError.message}`,
           );
           setError("Invalid email or password.");
+
+          // Show error toast
+          toast.error("Invalid email or password. Please try again.", {
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "1px solid rgba(239,68,68,0.2)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          });
+
           setLoading(false);
         }
         return;
@@ -64,6 +72,17 @@ export default function LoginPage() {
             "AUTH ERROR → signInWithPassword returned no user and no error.",
           );
           setError("No user returned. Please try again.");
+
+          // Show error toast
+          toast.error("Authentication failed. Please try again.", {
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "1px solid rgba(239,68,68,0.2)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
+          });
+
           setLoading(false);
         }
         return;
@@ -84,6 +103,17 @@ export default function LoginPage() {
           );
           await supabase.auth.signOut();
           setError("Could not verify your account. See debug info below.");
+
+          // Show error toast
+          toast.error("Could not verify your account.", {
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "1px solid rgba(239,68,68,0.2)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
+          });
+
           setLoading(false);
         }
         return;
@@ -97,6 +127,17 @@ export default function LoginPage() {
           );
           await supabase.auth.signOut();
           setError("No profile found for this account.");
+
+          // Show error toast
+          toast.error("No profile found for this account.", {
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "1px solid rgba(239,68,68,0.2)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
+          });
+
           setLoading(false);
         }
         return;
@@ -106,6 +147,17 @@ export default function LoginPage() {
         if (isMounted.current) {
           await supabase.auth.signOut();
           setError("Access denied. Admins only.");
+
+          // Show error toast
+          toast.error("Access denied. Admin privileges required.", {
+            style: {
+              background: "#fff",
+              color: "#333",
+              border: "1px solid rgba(239,68,68,0.2)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            },
+          });
+
           setLoading(false);
         }
         return;
@@ -113,8 +165,28 @@ export default function LoginPage() {
 
       // ── Step 3: Success ──────────────────────────────────────────
       if (isMounted.current) {
-        setLoading(false);
-        navigate("/admin", { replace: true });
+        // Show success toast before navigation
+        toast.success("Welcome back! Login successful. 🎉", {
+          duration: 3000,
+          style: {
+            background: "#fff",
+            color: "#333",
+            border: "1px solid rgba(236,72,153,0.2)",
+            boxShadow: "0 4px 12px rgba(236,72,153,0.15)",
+          },
+          iconTheme: {
+            primary: "#ec4899",
+            secondary: "#fff",
+          },
+        });
+
+        // Small delay to let the toast be visible before navigation
+        setTimeout(() => {
+          if (isMounted.current) {
+            setLoading(false);
+            navigate("/admin", { replace: true });
+          }
+        }, 500);
       }
     } catch (err) {
       console.error("Unexpected login error:", err);
@@ -123,6 +195,17 @@ export default function LoginPage() {
           `UNEXPECTED ERROR: ${err instanceof Error ? err.message : String(err)}`,
         );
         setError("An unexpected error occurred. Please try again.");
+
+        // Show error toast
+        toast.error("An unexpected error occurred. Please try again.", {
+          style: {
+            background: "#fff",
+            color: "#333",
+            border: "1px solid rgba(239,68,68,0.2)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+          },
+        });
+
         setLoading(false);
       }
     }
@@ -201,7 +284,7 @@ export default function LoginPage() {
 
       {/* ── Main Container ── */}
       <div
-        className="relative w-full max-w-5xl mx-4 rounded-3xl overflow-hidden flex flex-col lg:flex-row"
+        className="relative w-full max-w-4xl mx-4 rounded-3xl overflow-hidden flex flex-col lg:flex-row"
         style={{
           background: "rgba(255, 255, 255, 0.85)",
           backdropFilter: "blur(20px)",
@@ -243,6 +326,7 @@ export default function LoginPage() {
 
             
 
+            
           </div>
         </div>
 
@@ -251,7 +335,6 @@ export default function LoginPage() {
           <div className="max-w-sm mx-auto w-full">
             {/* Header */}
             <div className="mb-8">
-              
               <h2 className="text-2xl font-bold text-gray-900 mb-1">
                 Welcome back
               </h2>

@@ -1,4 +1,4 @@
-import { MapPin, Clock, Phone } from "lucide-react";
+import { MapPin} from "lucide-react";
 
 const CourtLocation = () => {
   return (
@@ -51,31 +51,8 @@ const CourtLocation = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-pink-100 rounded-xl mt-0.5">
-                    <Clock className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700">Hours</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      Mon–Fri: 6am – 10pm
-                      <br />
-                      Sat–Sun: 7am – 8pm
-                    </p>
-                  </div>
-                </div>
+               
 
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-pink-100 rounded-xl mt-0.5">
-                    <Phone className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-700">
-                      Contact
-                    </p>
-                    <p className="text-xs text-gray-400">+1 (555) 123-4567</p>
-                  </div>
-                </div>
               </div>
             </div>
 
