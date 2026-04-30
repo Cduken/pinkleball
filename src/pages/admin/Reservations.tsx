@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
   CalendarDays, Clock, User, Phone, Search, Filter,
   CheckCircle2, XCircle, Hourglass, MoreHorizontal,
@@ -48,6 +48,7 @@ const DetailDrawer = ({
     } catch (err: unknown) {
       toast.error((err as Error).message ?? "Failed to update status.", {
         style: { background: "#1a0d1f", color: "#fff" },
+        duration: 3000,
       });
     } finally {
       setBusy(false);

@@ -21,7 +21,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import AdminLayout from "../../layouts/AdminLayout";
 
 // Design tokens matching Reservations page

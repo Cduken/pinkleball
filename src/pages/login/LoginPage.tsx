@@ -1,11 +1,18 @@
 //LoginPage.tsx
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, AlertTriangle, Loader2, ArrowLeftCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  Loader2,
+  ArrowLeftCircle,
+} from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import toast from "react-hot-toast"; // Add this import
+import { toast } from "sonner"; // Add this import
 import PinkleBall from "../../assets/MainLogo/PinkleBall.png";
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -42,23 +49,14 @@ export default function LoginPage() {
 
       if (authError) {
         if (isMounted.current) {
-          setDebugInfo(
-            `AUTH ERROR → code: ${authError.status} | message: ${authError.message}`,
-          );
+          
           setError("Invalid email or password.");
 
           // Show error toast
-          toast.error("Invalid email or password. Please try again.", {
-            style: {
-              background: "#fff",
-              color: "#333",
-              border: "1px solid rgba(239,68,68,0.2)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            },
-            iconTheme: {
-              primary: "#ef4444",
-              secondary: "#fff",
-            },
+          toast.error("Invalid email or password. Please try", {
+            description:
+              "Make sure your credentials are correct and try again.",
+            duration: 3000,
           });
 
           setLoading(false);
@@ -75,12 +73,9 @@ export default function LoginPage() {
 
           // Show error toast
           toast.error("Authentication failed. Please try again.", {
-            style: {
-              background: "#fff",
-              color: "#333",
-              border: "1px solid rgba(239,68,68,0.2)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            },
+            description:
+              "No user data was returned from the authentication request.",
+            duration: 3000,
           });
 
           setLoading(false);
@@ -106,14 +101,10 @@ export default function LoginPage() {
 
           // Show error toast
           toast.error("Could not verify your account.", {
-            style: {
-              background: "#fff",
-              color: "#333",
-              border: "1px solid rgba(239,68,68,0.2)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            },
+            description:
+              "An error occurred while verifying your account. Please try again.",
+            duration: 3000,
           });
-
           setLoading(false);
         }
         return;
@@ -130,12 +121,9 @@ export default function LoginPage() {
 
           // Show error toast
           toast.error("No profile found for this account.", {
-            style: {
-              background: "#fff",
-              color: "#333",
-              border: "1px solid rgba(239,68,68,0.2)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-            },
+            description:
+              "Your account does not have an associated profile. Please contact support.",
+            duration: 3000,
           });
 
           setLoading(false);
@@ -166,18 +154,9 @@ export default function LoginPage() {
       // ── Step 3: Success ──────────────────────────────────────────
       if (isMounted.current) {
         // Show success toast before navigation
-        toast.success("Welcome back! Login successful. 🎉", {
+        toast.success("Welcome back! You are now signed in.", {
+          description: "You have been logged in to the admin panel.",
           duration: 3000,
-          style: {
-            background: "#fff",
-            color: "#333",
-            border: "1px solid rgba(236,72,153,0.2)",
-            boxShadow: "0 4px 12px rgba(236,72,153,0.15)",
-          },
-          iconTheme: {
-            primary: "#ec4899",
-            secondary: "#fff",
-          },
         });
 
         // Small delay to let the toast be visible before navigation
@@ -220,9 +199,11 @@ export default function LoginPage() {
         fontFamily: "'DM Sans', sans-serif",
       }}
     >
-
-      <ArrowLeftCircle size={32} onClick={() => navigate('/')} className="absolute z-50 top-10 left-10 text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out" />
-
+      <ArrowLeftCircle
+        size={32}
+        onClick={() => navigate("/")}
+        className="absolute z-50 top-10 left-10 text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out"
+      />
 
       {/* ── Animated Gradient Bubbles ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -297,8 +278,7 @@ export default function LoginPage() {
             "0 20px 60px rgba(236,72,153,0.1), 0 0 0 1px rgba(255,255,255,0.5)",
         }}
       >
-
-      {/* <ArrowLeftCircle size={32} onClick={() => navigate('/')} className="absolute top-10 left-10 block lg:hidden text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out" /> */}
+        {/* <ArrowLeftCircle size={32} onClick={() => navigate('/')} className="absolute top-10 left-10 block lg:hidden text-pink-300 hover:text-pink-500 transition-colors cursor-pointer transform hover:scale-110 duration-300 ease-in-out" /> */}
 
         {/* ── Left Side - Image/Branding ── */}
         <div className="lg:w-1/2 p-12 flex flex-col items-center justify-center relative overflow-hidden">
@@ -330,10 +310,6 @@ export default function LoginPage() {
                 }}
               />
             </div>
-
-            
-
-            
           </div>
         </div>
 
