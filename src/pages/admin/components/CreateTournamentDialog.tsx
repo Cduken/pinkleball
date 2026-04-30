@@ -48,7 +48,7 @@ export function CreateTournamentDialog({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("tournaments")
         .insert({
           ...form,
